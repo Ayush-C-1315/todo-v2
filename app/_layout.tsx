@@ -2,7 +2,8 @@ import { Stack } from "expo-router";
 import { Appearance } from "react-native";
 
 import { Colors } from "@/constants/Colors";
-import { ThemeProvider } from "./context/ThemeContext";
+import ThemeProvider from "./context/ThemeContext";
+import TodoProvider from "./context/TodoContext";
 
 export default function RootLayout() {
   const colorScheme = Appearance.getColorScheme();
@@ -10,11 +11,14 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider>
-      <Stack
-        screenOptions={{ headerShown: false, headerTintColor: theme.text }}
-      >
-        <Stack.Screen name="index" />
-      </Stack>
+      <TodoProvider>
+        <Stack
+          screenOptions={{ headerShown: false, headerTintColor: theme.text }}
+        >
+          <Stack.Screen name="index" />
+          <Stack.Screen name="todo" />
+        </Stack>
+      </TodoProvider>
     </ThemeProvider>
   );
 }

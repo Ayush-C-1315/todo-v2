@@ -31,7 +31,7 @@ export default function Index() {
           </Text>
         </View>
       </View>
-      <Link href={"/screens/Todo.screen"} asChild>
+      <Link href={"/todo"} asChild>
         <Pressable style={styles.startButton}>
           <Text style={styles.startButtonText}>Get Started !</Text>
         </Pressable>
