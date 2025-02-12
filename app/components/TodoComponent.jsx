@@ -26,7 +26,9 @@ const Todo = ({ id, title, description, completed, onClick }) => {
       <View style={styles.element}></View>
       <View style={styles.todo}>
         <Text style={styles.title}>{title}</Text>
-        <Text style={styles.description}>{description}</Text>
+        <Text style={styles.description} numberOfLines={2} ellipsizeMode="tail">
+          {description}
+        </Text>
       </View>
       {completed ? (
         <Pressable onPress={() => onClick(id)}>
@@ -71,6 +73,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: "Inter_500Medium",
     fontSize: 14,
+    marginBottom: 5,
   },
   description: {
     fontFamily: "Inter_400Regular",
