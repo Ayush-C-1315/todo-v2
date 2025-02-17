@@ -9,9 +9,15 @@ import {
   StyleSheet,
   Pressable,
   ScrollView,
-  TextInput,
+  Image,
 } from "react-native";
-import React, { useRef, useState, useCallback, useMemo } from "react";
+import React, {
+  useRef,
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+} from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import Entypo from "@expo/vector-icons/Entypo";
@@ -20,14 +26,29 @@ import { useTheme } from "./context/ThemeContext";
 import Todo from "./components/TodoComponent";
 import { useTodo } from "./context/TodoContext";
 import AddTodo from "./components/AddTodo";
+import TodoDescription from "./components/TodoDescription";
+import LoadingScreen from "./components/LoadingComponent";
+import { getTodoByIdService } from "@/app/services/todoServices";
+import EmptyList from "./components/EmptyList";
 
 const TodoScreen = () => {
   const { theme } = useTheme();
-  const { todoState, toggleTodo, addTodo } = useTodo();
+  const {
+    todoState: { todos, todosLoading },
+    toggleTodo,
+    deleteTodo,
+    addTodo,
+    updateTodo,
+  } = useTodo();
   const [showCompleted, setShowCompleted] = useState(false);
   const [showBottomSheet, setShowBottomSheet] = useState(false);
+  const [modifyTodo, setModifyTodo] = useState({
+    showDetails: false,
+    edit: false,
+  });
+  const [todoDescription, setTodoDescription] = useState(null);
+  const [viewId, setViewId] = useState("");
 
-  // Load fonts
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
     Inter_600SemiBold,
@@ -44,6 +65,38 @@ const TodoScreen = () => {
     bottomSheetRef.current?.close();
     setShowBottomSheet(false);
   }, []);
+  const bottomSheetDescriptionRef = useRef(null);
+
+  const handleDescriptionExpand = useCallback(() => {
+    bottomSheetDescriptionRef.current?.expand();
+    setShowBottomSheet(true);
+  }, []);
+  const handleDescriptionClose = useCallback(() => {
+    bottomSheetDescriptionRef.current?.close();
+    setShowBottomSheet(false);
+    setTodoDescription(null);
+    setViewId("");
+  }, []);
+  const handleTodoUpdate = async ({ id, title, description }) => {
+    try {
+      await updateTodo({ id, title, description });
+      handleDescriptionClose();
+    } catch (e) {
+      throw e;
+    }
+  };
+  useEffect(() => {
+    const onDescriptionLoad = async () => {
+      try {
+        const data = await getTodoByIdService(viewId);
+        setTodoDescription(data);
+      } catch (e) {
+        throw e;
+      }
+    };
+
+    viewId && onDescriptionLoad();
+  }, [viewId]);
   const submitHandler = (data) => {
     if (data.title.trim() === "" || data.description.trim() === "") {
       return;
@@ -59,7 +112,6 @@ const TodoScreen = () => {
       </View>
     );
   }
-
   return (
     <View style={styles.container}>
       <GestureHandlerRootView
@@ -68,64 +120,98 @@ const TodoScreen = () => {
           showBottomSheet && { backgroundColor: "rgba(0,0,0,0.26)" },
         ]}
       >
-        <View style={styles.contentContainer}>
-          <Text style={styles.header}>Todo App</Text>
+        {todosLoading ? (
+          <LoadingScreen />
+        ) : (
+          <View style={styles.contentContainer}>
+            <Text style={styles.header}>Todo App</Text>
 
-          <ScrollView showsVerticalScrollIndicator={false}>
-            <View
-              style={[
-                todoState.filter((todo) => todo.completed).length === 0 && {
-                  marginBottom: 20,
-                },
-              ]}
-            >
-              {todoState.map(
-                (item, index) =>
-                  !item.completed && (
-                    <Todo key={index} {...item} onClick={toggleTodo} />
-                  )
-              )}
-            </View>
-
-            {todoState.filter((todo) => todo.completed).length > 0 && (
-              <>
-                <Pressable
-                  style={styles.completedSection}
-                  onPress={() => setShowCompleted(!showCompleted)}
-                >
-                  <Text
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {todos.length > 0 ? (
+                <View>
+                  <View
                     style={[
-                      styles.completedText,
-                      !showCompleted && { marginBottom: 20 },
+                      todos.filter((todo) => todo.completed).length === 0 && {
+                        marginBottom: 20,
+                      },
                     ]}
                   >
-                    Completed
-                  </Text>
-                  {showCompleted ? (
-                    <Entypo name="chevron-up" size={24} color="black" />
-                  ) : (
-                    <Entypo name="chevron-down" size={24} color="black" />
-                  )}
-                </Pressable>
-
-                {showCompleted && (
-                  <View style={{ marginBottom: 30 }}>
-                    {todoState.map(
+                    {todos.map(
                       (item, index) =>
-                        item.completed && (
-                          <Todo key={index} {...item} onClick={toggleTodo} />
+                        !item.completed && (
+                          <Todo
+                            key={index}
+                            {...item}
+                            onClick={toggleTodo}
+                            onLongPress={(id) => {
+                              setModifyTodo({
+                                showDetails: !modifyTodo.showDetails,
+                                edit: false,
+                              });
+                              setViewId(id);
+                              handleDescriptionExpand();
+                            }}
+                          />
                         )
                     )}
                   </View>
-                )}
-              </>
-            )}
-          </ScrollView>
 
-          <Pressable style={styles.addTaskButton} onPress={handleExpand}>
-            <Text style={styles.buttonText}>Add Task</Text>
-          </Pressable>
-        </View>
+                  {todos.filter((todo) => todo.completed).length > 0 && (
+                    <>
+                      <Pressable
+                        style={styles.completedSection}
+                        onPress={() => setShowCompleted(!showCompleted)}
+                      >
+                        <Text
+                          style={[
+                            styles.completedText,
+                            !showCompleted && { marginBottom: 20 },
+                          ]}
+                        >
+                          Completed
+                        </Text>
+                        {showCompleted ? (
+                          <Entypo name="chevron-up" size={24} color="black" />
+                        ) : (
+                          <Entypo name="chevron-down" size={24} color="black" />
+                        )}
+                      </Pressable>
+
+                      {showCompleted && (
+                        <View style={{ marginBottom: 30 }}>
+                          {todos.map(
+                            (item, index) =>
+                              item.completed && (
+                                <Todo
+                                  key={index}
+                                  {...item}
+                                  onClick={toggleTodo}
+                                  onLongPress={(id) => {
+                                    setModifyTodo({
+                                      showDetails: !modifyTodo.showDetails,
+                                      edit: false,
+                                    });
+                                    setViewId(id);
+                                    handleDescriptionExpand();
+                                  }}
+                                />
+                              )
+                          )}
+                        </View>
+                      )}
+                    </>
+                  )}
+                </View>
+              ) : (
+                <EmptyList />
+              )}
+            </ScrollView>
+
+            <Pressable style={styles.addTaskButton} onPress={handleExpand}>
+              <Text style={styles.buttonText}>Add Task</Text>
+            </Pressable>
+          </View>
+        )}
         <BottomSheet
           index={-1}
           ref={bottomSheetRef}
@@ -134,6 +220,26 @@ const TodoScreen = () => {
         >
           <BottomSheetView style={styles.bottomSheetView}>
             <AddTodo onClose={handleClose} onSubmit={submitHandler} />
+          </BottomSheetView>
+        </BottomSheet>
+        <BottomSheet
+          index={-1}
+          ref={bottomSheetDescriptionRef}
+          snapPoints={snapPoints}
+          handleComponent={null}
+        >
+          <BottomSheetView style={styles.bottomSheetView}>
+            <TodoDescription
+              onClose={handleDescriptionClose}
+              onSubmit={(data) => handleTodoUpdate(data)}
+              renderData={todoDescription}
+              onDelete={(id) => {
+                deleteTodo(id);
+                setTodoDescription(null);
+                handleDescriptionClose();
+              }}
+              id={viewId}
+            />
           </BottomSheetView>
         </BottomSheet>
       </GestureHandlerRootView>
@@ -182,6 +288,7 @@ const styles = StyleSheet.create({
   },
   bottomSheet: {
     flex: 1,
+    zIndex: 100,
   },
   bottomSheetHeader: {
     flexDirection: "row",
@@ -234,6 +341,7 @@ const styles = StyleSheet.create({
     padding: 20,
     alignItems: "center",
     paddingBottom: 5,
+    zIndex: 20,
   },
 });
 

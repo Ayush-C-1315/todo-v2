@@ -5,17 +5,49 @@ import {
   Inter_400Regular,
   Inter_600SemiBold,
 } from "@expo-google-fonts/inter";
-import { View, Text, StyleSheet, Pressable, TextInput } from "react-native";
-import { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  TextInput,
+  TouchableOpacity,
+} from "react-native";
 
-const AddTodo = ({ onClose, onSubmit }) => {
-  const [newTodo, setNewTodo] = useState({ title: "", description: "" });
+import { useEffect, useState } from "react";
+
+const TodoDescription = ({ onClose, onSubmit, onDelete, renderData }) => {
+  const [todoData, setNewTodo] = useState(null);
 
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
     Inter_600SemiBold,
   });
 
+  useEffect(() => {
+    setNewTodo((prev) => renderData);
+  }, [renderData]);
+
+  const getDateAndTimeString = (date) => {
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+    const logDate = new Date(date);
+    return `${logDate.getDate()} ${
+      months[logDate.getMonth()]
+    } ${logDate.getFullYear()}`;
+  };
   if (!fontsLoaded) {
     return (
       <View style={styles.container}>
@@ -24,15 +56,15 @@ const AddTodo = ({ onClose, onSubmit }) => {
     );
   }
   const submitHandler = () => {
-    if (newTodo.title.trim() !== "" || newTodo.description.trim() !== "") {
-      onSubmit(newTodo);
+    if (todoData?.title.trim() !== "" || todoData?.description.trim() !== "") {
+      onSubmit(todoData);
     }
-    setNewTodo({ title: "", description: "" });
+    setNewTodo(null);
   };
   return (
     <View style={styles.container}>
       <View style={styles.bottomSheetHeader}>
-        <Text style={styles.bottomSheetHeaderTitle}>New Task</Text>
+        <Text style={styles.bottomSheetHeaderTitle}>TodoDescription</Text>
         <Pressable onPress={onClose}>
           <View style={styles.closeButton}>
             <AntDesign name="close" size={16} color="black" />
@@ -41,33 +73,58 @@ const AddTodo = ({ onClose, onSubmit }) => {
       </View>
       <View style={styles.bottomSheetContent}>
         <View style={styles.taskForm}>
+          <Text style={[styles.addTaskTitles, { marginTop: 0 }]}>
+            Created At:{" "}
+            {todoData ? getDateAndTimeString(todoData?.createdAt) : ""}
+          </Text>
           <Text style={styles.addTaskTitles}>Title</Text>
           <TextInput
-            onChangeText={(e) => setNewTodo({ ...newTodo, title: e })}
+            onChangeText={(e) => setNewTodo({ ...todoData, title: e })}
             placeholder="Enter the title of your task"
             style={styles.formInputs}
             placeholderTextColor={"#BEBEBE"}
-            value={newTodo.title}
+            value={todoData?.title ?? ""}
           ></TextInput>
           <Text style={styles.addTaskTitles}>Description</Text>
           <TextInput
-            onChangeText={(e) => setNewTodo({ ...newTodo, description: e })}
+            onChangeText={(e) => setNewTodo({ ...todoData, description: e })}
             placeholder="Enter the description of your task"
             style={styles.formInputs}
             placeholderTextColor={"#BEBEBE"}
             multiline={true}
-            numberOfLines={6}
-            value={newTodo.description}
+            numberOfLines={4}
+            value={todoData?.description ?? ""}
           ></TextInput>
         </View>
-        <Pressable onPress={submitHandler} style={styles.submitButton}>
-          <Text style={styles.buttonText}>Submit</Text>
-        </Pressable>
+
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <Text
+            numberOfLines={5}
+            style={[styles.addTaskTitles, { marginTop: 0 }]}
+          >
+            Status:
+          </Text>
+          <Text>{todoData?.completed ? "Completed" : "Pending"}</Text>
+        </View>
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity onPress={submitHandler} style={styles.submitButton}>
+            <Text style={styles.buttonText}>
+              <AntDesign name="edit" size={24} color="white" />
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.submitButton, { backgroundColor: "red" }]}
+            onPress={() => onDelete(renderData?.id)}
+          >
+            <Text style={styles.buttonText}>
+              <AntDesign name="delete" size={24} color="white" />
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     backgroundColor: "rgba(255, 255, 255, 1)",
@@ -75,15 +132,20 @@ const styles = StyleSheet.create({
     position: "relative",
     width: "100%",
   },
-  // addTaskButton: {
-  //   backgroundColor: "#4884AE",
-  //   padding: 15,
-  //   borderRadius: 5,
-  //   position: "sticky",
-  //   bottom: 20,
-  //   alignSelf: "center",
-  //   width: "100%",
-  // },
+  picker: {
+    backgroundColor: "#f5f5f5",
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    width: "40%",
+    padding: 15,
+    fontSize: 14,
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+
   buttonText: {
     textAlign: "center",
     fontFamily: "Inter_600SemiBold",
@@ -130,8 +192,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#4884AE",
     padding: 15,
     borderRadius: 5,
-    alignSelf: "center",
-    width: "100%",
+    width: "45%",
   },
   bottomSheetContent: {
     flexDirection: "column",
@@ -147,4 +208,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default AddTodo;
+export default TodoDescription;

@@ -1,71 +1,73 @@
-import { useState, createContext, useContext, useEffect } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { createContext, useContext, useEffect, useReducer } from "react";
 
-import todos from "../data/todoData";
 import React from "react";
 
+import {
+  getAllTodosService,
+  updateTodoService,
+  createTodoService,
+  deleteTodoService,
+} from "@/app/services/todoServices";
+import todoReducer, { initialTosoState } from "@/app/reducer/todoReducer";
 const TodoContext = createContext({});
 const TodoProvider = ({ children }) => {
-  const [todoState, setTodo] = useState([]);
-
+  const [todoState, todoDispatch] = useReducer(todoReducer, initialTosoState);
   useEffect(() => {
     const getTodos = async () => {
       try {
-        const jsonData = await AsyncStorage.getItem("Todo");
-        const storedTodos = jsonData ? JSON.parse(jsonData) : null;
-
-        // If no todos are found, set the default todos
-        if (!storedTodos || storedTodos.length === 0) {
-          await AsyncStorage.setItem("Todo", JSON.stringify(todos));
-          setTodo(todos);
-        } else {
-          setTodo(storedTodos);
-        }
+        todoDispatch({ type: "LOADING", payload: true });
+        const todoData = await getAllTodosService();
+        todoDispatch({ type: "SET_TODO", payload: todoData });
       } catch (e) {
         console.error(e);
+      } finally {
+        todoDispatch({ type: "LOADING", payload: false });
       }
     };
-
     getTodos();
   }, []);
 
-  useEffect(() => {
-    const setTodos = async () => {
-      try {
-        const jsonData = await AsyncStorage.getItem("Todo");
-        if (jsonData !== null) {
-          const storedTodos = JSON.parse(jsonData);
-          await AsyncStorage.removeItem("Todo");
-          await AsyncStorage.setItem("Todo", JSON.stringify(todoState));
-        } else {
-          await AsyncStorage.setItem(
-            "Todo",
-            JSON.stringify(todoState.length ? todoState : todos)
-          );
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    };
-    setTodos();
-  }, [todoState]);
-
-  const toggleTodo = (id) => {
-    setTodo((prev) =>
-      prev.map((todo) =>
-        todo.id === id ? { ...todo, completed: !todo.completed } : todo
-      )
-    );
+  const toggleTodo = async (id) => {
+    const todo = todoState.todos.find((todo) => todo.id === id);
+    try {
+      todoDispatch({ type: "TOGGLE_TODO", payload: id });
+      await updateTodoService({ ...todo, completed: !todo.completed });
+    } catch (e) {
+      console.error(e);
+    }
   };
 
-  const addTodo = ({ title, description }) => {
-    setTodo((prev) => [
-      ...prev,
-      { id: prev.length + 1, title, description, completed: false },
-    ]);
+  const updateTodo = async ({ id, title, description }) => {
+    try {
+      todoDispatch({
+        type: "UPDATE_TODO",
+        payload: { id, title, description },
+      });
+      const updateTodo = await updateTodoService({ id, title, description });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+  const addTodo = async ({ title, description }) => {
+    try {
+      const response = await createTodoService({ title, description });
+      todoDispatch({ type: "ADD_TODO", payload: response });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+  const deleteTodo = async (id) => {
+    try {
+      todoDispatch({ type: "DELETE_TODO", payload: id });
+      await deleteTodoService(id);
+    } catch (e) {
+      console.error(e);
+    }
   };
   return (
-    <TodoContext.Provider value={{ todoState, toggleTodo, addTodo }}>
+    <TodoContext.Provider
+      value={{ todoState, toggleTodo, addTodo, deleteTodo, updateTodo }}
+    >
       {children}
     </TodoContext.Provider>
   );

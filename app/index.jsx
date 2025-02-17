@@ -1,7 +1,7 @@
 import { Link } from "expo-router";
 import { Image, Pressable, Text, View, StyleSheet } from "react-native";
 import { useFonts, Inter_600SemiBold } from "@expo-google-fonts/inter";
-
+import { StatusBar } from "expo-status-bar";
 import { useTheme } from "./context/ThemeContext";
 
 import heroImage from "@/assets/images/hero-image.png";
@@ -14,7 +14,7 @@ export default function Index() {
   });
 
   if (!fontsLoaded) {
-    return null;
+    return <></>;
   }
   return (
     <View style={styles.container}>
@@ -36,6 +36,7 @@ export default function Index() {
           <Text style={styles.startButtonText}>Get Started !</Text>
         </Pressable>
       </Link>
+      <StatusBar style={"dark"} />
     </View>
   );
 }
@@ -51,6 +52,8 @@ const homeStyleSheet = (theme) =>
       flexDirection: "column",
       padding: 15,
       flex: 2,
+      overflowY: "hidden",
+      overflowX: "hidden",
     },
     heroContainer: {
       flex: 1,

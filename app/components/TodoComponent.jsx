@@ -7,7 +7,7 @@ import {
   Inter_400Regular,
 } from "@expo-google-fonts/inter";
 
-const Todo = ({ id, title, description, completed, onClick }) => {
+const Todo = ({ id, title, description, completed, onClick, onLongPress }) => {
   let [fontsLoaded] = useFonts({
     Inter_500Medium,
     Inter_400Regular,
@@ -17,11 +17,12 @@ const Todo = ({ id, title, description, completed, onClick }) => {
     return null;
   }
   return (
-    <View
+    <Pressable
       style={[
         styles.listContainer,
         completed && { backgroundColor: "#E8E8E8" },
       ]}
+      onLongPress={() => onLongPress(id)}
     >
       <View style={styles.element}></View>
       <View style={styles.todo}>
@@ -39,7 +40,7 @@ const Todo = ({ id, title, description, completed, onClick }) => {
           <Entypo name="circle" size={24} color="#C6D0D0" />
         </Pressable>
       )}
-    </View>
+    </Pressable>
   );
 };
 
